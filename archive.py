@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Usage: archive.py [rate]
+# Usage: archive.py [rate] <pvnames>
 #        rate: poll rate in seconds, defaults to 0.1
 # vi: smartindent sw=4 ts=4 sts=4 expandtab
 
@@ -12,19 +12,15 @@ import traceback
 from config import (get_timestamp, status_pvname, position_pvnames)
 
 
-pv_names = (status_pvname,
-            ) + tuple(position_pvnames)
-
-
 def test_archive(pv_names, rate=0.1):
     pv_list = tuple(epics.PV(pv, auto_monitor=False) for pv in pv_names)
-    
+
     # dumb busy-loop implementation
     last_values = None
     while True:
         t0 = time.time()
         values = tuple(pv.get() for pv in pv_list)
-        
+
         if values != last_values:
             if last_values is None:
                 print('# {}'.format('\t'.join(pv_names)))
@@ -37,14 +33,23 @@ def test_archive(pv_names, rate=0.1):
 
 
 if __name__ == '__main__':
+    pv_names = (status_pvname,
+                ) + tuple(position_pvnames)
+    rate = 0.1
+
     try:
         rate = float(sys.argv[1])
     except IndexError:
-        rate = 0.1
-    
+        ...
+    except ValueError:
+        pv_names = sys.argv[1:]
+    else:
+        if len(sys.argv) > 2:
+            pv_names = sys.argv[2:]
+
     if rate <= 0.0:
         raise ValueError('Invalid rate specified')
-    
+
     print('# {} started recording'.format(get_timestamp()))
     while True:
         try:
